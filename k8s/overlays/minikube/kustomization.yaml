@@ -26,4 +26,7 @@ patchesJson6902:
         value: nginx
       - op: replace
         path: /spec/rules/0/host
-        value: mini.cassellas.com.br
+        value: api-mini.cassellas.com.br
+      - op: replace
+        path: /spec/rules/0/http/paths/0/path
+        value: /API/cassellas-api
