@@ -1,0 +1,72 @@
+name: Deploy Minikube
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_name:
+        description: Nome da API para rota /API/<api_name>/now
+        required: true
+        default: cassellas-api
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_repo: ${{ steps.meta.outputs.image_repo }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        shell: bash
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY_OWNER}/cassellas-api"
+          repo="${repo,,}"
+          echo "image_repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.meta.outputs.image_repo }}:latest
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, x64, wsl, minikube]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar contexto Kubernetes
+        run: |
+          kubectl config current-context
+          kubectl get nodes
+
+      - name: Renderizar e aplicar manifests
+        shell: bash
+        env:
+          IMAGE_REPO: ${{ needs.build.outputs.image_repo }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          API_NAME: ${{ inputs.api_name }}
+        run: |
+          cp -R k8s /tmp/k8s
+          sed -i "s|GHCR_IMAGE|${IMAGE_REPO}|g" /tmp/k8s/overlays/minikube/kustomization.yaml
+          sed -i "s|IMAGE_TAG|${IMAGE_TAG}|g" /tmp/k8s/overlays/minikube/kustomization.yaml
+          kubectl apply -k /tmp/k8s/overlays/minikube
+          kubectl -n cassellas-api set env deployment/cassellas-api API_NAME="${API_NAME}"
+          kubectl rollout status deployment/cassellas-api -n cassellas-api --timeout=180s
