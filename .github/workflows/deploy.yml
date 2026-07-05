@@ -61,6 +61,7 @@ jobs:
       - name: Render manifests
         shell: bash
         run: |
+          rm -rf /tmp/k8s
           cp -R k8s /tmp/k8s
           sed -i "s|GHCR_IMAGE|${{ steps.image.outputs.repository }}|g" /tmp/k8s/overlays/prod/kustomization.yaml
           sed -i "s|IMAGE_TAG|${GITHUB_SHA}|g" /tmp/k8s/overlays/prod/kustomization.yaml
