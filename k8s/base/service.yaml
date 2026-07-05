@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cassellas-api
+  namespace: cassellas-api
+spec:
+  selector:
+    app: cassellas-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

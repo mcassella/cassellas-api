@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: cassellas-api-cert
+  namespace: cassellas-api
+spec:
+  domains:
+    - api.cassellas.com.br
