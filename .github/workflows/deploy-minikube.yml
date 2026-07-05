@@ -88,11 +88,20 @@ jobs:
                 targetPort: 80
           EOF
 
+          if kubectl -n cattle-system get ingress rancher-ingress >/dev/null 2>&1 && kubectl -n cattle-system get ingress rancher >/dev/null 2>&1; then
+            kubectl -n cattle-system delete ingress rancher --ignore-not-found
+          fi
+
+          RANCHER_INGRESS="rancher-ingress"
+          if ! kubectl -n cattle-system get ingress "${RANCHER_INGRESS}" >/dev/null 2>&1; then
+            RANCHER_INGRESS="rancher"
+          fi
+
           API_PATH="/API/${API_NAME}"
-          if kubectl -n cattle-system get ingress rancher -o jsonpath='{range .spec.rules[?(@.host=="mini.cassellas.com.br")].http.paths[*]}{.path}{"=>"}{.backend.service.name}{"\n"}{end}' | grep -q "^${API_PATH}=>cassellas-api-bridge$"; then
+          if kubectl -n cattle-system get ingress "${RANCHER_INGRESS}" -o jsonpath='{range .spec.rules[?(@.host=="mini.cassellas.com.br")].http.paths[*]}{.path}{"=>"}{.backend.service.name}{"\n"}{end}' | grep -q "^${API_PATH}=>cassellas-api-bridge$"; then
             echo "Ingress path ${API_PATH} already present on rancher ingress"
           else
-            kubectl -n cattle-system patch ingress rancher --type='json' -p="[{\"op\":\"add\",\"path\":\"/spec/rules/0/http/paths/-\",\"value\":{\"path\":\"${API_PATH}\",\"pathType\":\"Prefix\",\"backend\":{\"service\":{\"name\":\"cassellas-api-bridge\",\"port\":{\"number\":80}}}}}]"
+            kubectl -n cattle-system patch ingress "${RANCHER_INGRESS}" --type='json' -p="[{\"op\":\"add\",\"path\":\"/spec/rules/0/http/paths/-\",\"value\":{\"path\":\"${API_PATH}\",\"pathType\":\"Prefix\",\"backend\":{\"service\":{\"name\":\"cassellas-api-bridge\",\"port\":{\"number\":80}}}}}]"
           fi
 
           kubectl -n cassellas-api set env deployment/cassellas-api API_NAME="${API_NAME}"
