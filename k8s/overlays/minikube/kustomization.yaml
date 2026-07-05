@@ -9,24 +9,4 @@ images:
     newTag: IMAGE_TAG
 patchesStrategicMerge:
   - managed-certificate-delete.yaml
-patchesJson6902:
-  - target:
-      group: networking.k8s.io
-      version: v1
-      kind: Ingress
-      name: cassellas-api
-    patch: |
-      - op: replace
-        path: /metadata/annotations/kubernetes.io~1ingress.class
-        value: nginx
-      - op: remove
-        path: /metadata/annotations/networking.gke.io~1managed-certificates
-      - op: add
-        path: /spec/ingressClassName
-        value: nginx
-      - op: replace
-        path: /spec/rules/0/host
-        value: api-mini.cassellas.com.br
-      - op: replace
-        path: /spec/rules/0/http/paths/0/path
-        value: /API/cassellas-api
+  - ingress-delete.yaml

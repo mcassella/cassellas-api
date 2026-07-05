@@ -29,6 +29,8 @@ jobs:
           echo "image_repo=$repo" >> "$GITHUB_OUTPUT"
           echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
+      - uses: docker/setup-qemu-action@v3
+
       - uses: docker/setup-buildx-action@v4
 
       - uses: docker/login-action@v4
@@ -42,6 +44,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
             ${{ steps.meta.outputs.image_repo }}:latest
@@ -69,5 +72,28 @@ jobs:
           sed -i "s|GHCR_IMAGE|${IMAGE_REPO}|g" /tmp/k8s/overlays/minikube/kustomization.yaml
           sed -i "s|IMAGE_TAG|${IMAGE_TAG}|g" /tmp/k8s/overlays/minikube/kustomization.yaml
           kubectl apply -k /tmp/k8s/overlays/minikube
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: cassellas-api-bridge
+            namespace: cattle-system
+          spec:
+            type: ExternalName
+            externalName: cassellas-api.cassellas-api.svc.cluster.local
+            ports:
+              - name: http
+                port: 80
+                targetPort: 80
+          EOF
+
+          API_PATH="/API/${API_NAME}"
+          if kubectl -n cattle-system get ingress rancher -o jsonpath='{range .spec.rules[?(@.host=="mini.cassellas.com.br")].http.paths[*]}{.path}{"=>"}{.backend.service.name}{"\n"}{end}' | grep -q "^${API_PATH}=>cassellas-api-bridge$"; then
+            echo "Ingress path ${API_PATH} already present on rancher ingress"
+          else
+            kubectl -n cattle-system patch ingress rancher --type='json' -p="[{\"op\":\"add\",\"path\":\"/spec/rules/0/http/paths/-\",\"value\":{\"path\":\"${API_PATH}\",\"pathType\":\"Prefix\",\"backend\":{\"service\":{\"name\":\"cassellas-api-bridge\",\"port\":{\"number\":80}}}}}]"
+          fi
+
           kubectl -n cassellas-api set env deployment/cassellas-api API_NAME="${API_NAME}"
           kubectl rollout status deployment/cassellas-api -n cassellas-api --timeout=180s
