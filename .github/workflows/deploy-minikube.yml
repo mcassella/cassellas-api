@@ -19,7 +19,7 @@ jobs:
       image_repo: ${{ steps.meta.outputs.image_repo }}
       image_tag: ${{ steps.meta.outputs.image_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: meta
         shell: bash
@@ -29,15 +29,15 @@ jobs:
           echo "image_repo=$repo" >> "$GITHUB_OUTPUT"
           echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -48,9 +48,9 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: [self-hosted, linux, x64, wsl, minikube]
+    runs-on: [self-hosted, linux, ARM64, wsl, minikube]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validar contexto Kubernetes
         run: |
