@@ -2,6 +2,101 @@
 
 API FastAPI preparada para build em `ghcr.io` e deploy em GKE com GitHub Actions.
 
+## Autenticacao (versao inicial)
+
+A API possui login simples por usuario e senha com validacao em arquivo TXT.
+
+- Endpoint: `POST /auth/login`
+- Endpoint com prefixo: `POST /API/{API_NAME}/auth/login`
+- Body JSON:
+
+```json
+{
+	"username": "admin",
+	"password": "admin123"
+}
+```
+
+O arquivo padrao de usuarios e `users.txt` (raiz do projeto), no formato:
+
+```txt
+usuario:senha_em_sha512_hex
+```
+
+Voce pode alterar o caminho com a variavel de ambiente `AUTH_USERS_FILE`.
+
+Para gerar o SHA-512 de uma senha no Linux:
+
+```bash
+printf 'minha_senha' | sha512sum
+```
+
+## MFA com Microsoft Authenticator
+
+O MFA usa TOTP (padrao compativel com Microsoft Authenticator).
+
+Se o usuario tiver MFA configurado, o endpoint de login simples (`/auth/login`) retorna `403` e exige `/auth/login/mfa`.
+
+- Setup do MFA: `POST /auth/mfa/setup`
+- Login com MFA: `POST /auth/login/mfa`
+- Versoes com prefixo:
+	- `POST /API/{API_NAME}/auth/mfa/setup`
+	- `POST /API/{API_NAME}/auth/login/mfa`
+
+Arquivo de segredos MFA (padrao): `mfa_secrets.txt`, no formato:
+
+```txt
+usuario:segredo_base32
+```
+
+Pode ser alterado por `AUTH_MFA_FILE`.
+
+### 1) Setup no Microsoft Authenticator
+
+Chame o setup com usuario e senha validos:
+
+```bash
+curl -X POST "http://localhost:8080/auth/mfa/setup" \
+	-H "Content-Type: application/json" \
+	-d '{"username":"admin","password":"admin123"}'
+```
+
+A resposta retorna `secret`, `otpauth_uri` e `qr_code_png_base64` (PNG em Base64).
+
+No app Microsoft Authenticator:
+1. Adicione uma nova conta.
+2. Escaneie o QR code (ou escolha entrada manual).
+3. Informe o segredo (`secret`) e finalize.
+
+Exemplo para salvar o QR em arquivo no Linux:
+
+```bash
+curl -s -X POST "http://localhost:8080/auth/mfa/setup" \
+	-H "Content-Type: application/json" \
+	-d '{"username":"admin","password":"admin123"}' \
+| python3 -c "import sys, json, base64; d=json.load(sys.stdin); open('mfa_qr.png','wb').write(base64.b64decode(d['qr_code_png_base64']))"
+```
+
+### 2) Login com MFA
+
+Use usuario, senha e OTP atual do app:
+
+```bash
+curl -X POST "http://localhost:8080/auth/login/mfa" \
+	-H "Content-Type: application/json" \
+	-d '{"username":"admin","password":"admin123","otp":"123456"}'
+```
+
+### 3) Desativar MFA
+
+Requer senha e OTP atual. Apos desativar, o usuario volta a usar apenas `/auth/login`.
+
+```bash
+curl -X POST "http://localhost:8080/auth/mfa/disable" \
+	-H "Content-Type: application/json" \
+	-d '{"username":"admin","password":"admin123","otp":"123456"}'
+```
+
 ## Estrutura
 
 - `main.py`: app FastAPI com endpoints `/` e `/healthz`

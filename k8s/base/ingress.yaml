@@ -5,7 +5,7 @@ metadata:
   namespace: cassellas-api
   annotations:
     kubernetes.io/ingress.class: gce
-    networking.gke.io/managed-certificates: cassellas-api-cert
+    networking.gke.io/managed-certificates: cassellas-api-cert-v2
 spec:
   rules:
     - host: api.cassellas.com.br
