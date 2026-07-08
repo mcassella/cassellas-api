@@ -23,7 +23,7 @@ async def healthcheck() -> dict[str, str]:
 async def get_current_datetime() -> dict[str, str]:
     now = datetime.now(timezone.utc)
     return {
-        "dataatual": now.isoformat(),
+        "data_atual": now.isoformat(),
         "timezone": "UTC",
     }
 
@@ -33,6 +33,6 @@ async def get_current_datetime_with_prefix() -> dict[str, str]:
     now = datetime.now(timezone.utc)
     return {
         "api": API_NAME,
-        "dataatual": now.isoformat(),
+        "data_atual": now.isoformat(),
         "timezone": "UTC",
     }
