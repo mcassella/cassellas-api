@@ -239,9 +239,9 @@ jobs:
       - name: Fetch GKE credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
-          cluster_name: ${{ vars.GKE_CLUSTER }}
-          location: ${{ vars.GKE_LOCATION }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
+          cluster_name: ${{ vars.GKE_CLUSTER || 'gke-economico' }}
+          location: ${{ vars.GKE_LOCATION || 'us-central1-a' }}
+          project_id: ${{ vars.GCP_PROJECT_ID || 'project-35924d4e-e4d4-4fb6-92e' }}
 
       - name: Render production manifests
         shell: bash
