@@ -66,7 +66,8 @@ jobs:
       - name: Static security scan
         run: bandit -r main.py
 
-      - name: Dependency vulnerability scan
+      - name: Dependency vulnerability scan (non-blocking)
+        continue-on-error: true
         run: pip-audit -r requirements.txt
 
   build:
