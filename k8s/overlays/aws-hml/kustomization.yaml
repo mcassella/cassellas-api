@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cassellas-api
+resources:
+  - ../../base
+images:
+  - name: APP_IMAGE
+    newName: GHCR_IMAGE
+    newTag: IMAGE_TAG
+patchesStrategicMerge:
+  - managed-certificate-delete.yaml
+  - ingress-aws-hml.yaml

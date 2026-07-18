@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cassellas-api
+  namespace: cassellas-api
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    networking.gke.io/managed-certificates: null
+spec:
+  rules:
+    - host: hml-api.cassellas.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cassellas-api
+                port:
+                  number: 80

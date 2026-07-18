@@ -1,0 +1,6 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: cassellas-api-cert-v2
+  namespace: cassellas-api
+$patch: delete

@@ -1,6 +1,9 @@
 # cassellas-api
 
-API FastAPI preparada para build em `ghcr.io` e deploy em GKE com GitHub Actions.
+API FastAPI preparada para build em `ghcr.io` e deploy progressivo com GitHub Actions:
+
+1. Homologacao em cluster AWS: `https://hml-api.cassellas.com.br`
+2. Producao em GCP/GKE: `https://api.cassellas.com.br`
 
 ## Autenticacao (versao inicial)
 
@@ -101,8 +104,8 @@ curl -X POST "http://localhost:8080/auth/mfa/disable" \
 
 - `main.py`: app FastAPI com endpoints `/` e `/healthz`
 - `Dockerfile`: imagem de produção com `uvicorn`
-- `.github/workflows/deploy.yml`: build da imagem no GHCR e deploy no GKE
-- `k8s/`: manifests base e overlay de produção
+- `.github/workflows/pipeline.yml`: test/security/build, deploy em HML (AWS) e promocao para Producao (GCP)
+- `k8s/`: manifests base e overlays `aws-hml`, `minikube` e `prod`
 
 ## Repositório GitHub
 
@@ -135,11 +138,21 @@ Defina estes `Repository variables`:
 - `GCP_PROJECT_ID`
 - `GKE_CLUSTER`
 - `GKE_LOCATION`
+- `AWS_HML_KUBE_CONTEXT` (opcional, contexto `kubectl` para o cluster de HML em AWS)
 
 Defina estes `Repository secrets`:
 
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_SERVICE_ACCOUNT`
+
+## Gate de aprovacao para producao
+
+O workflow principal usa dois `environments`:
+
+- `aws-hml`: deploy automatico de homologacao
+- `gcp-prod`: deploy de producao
+
+Para garantir "HML primeiro, producao depois de aprovado", configure `Required reviewers` no environment `gcp-prod` no GitHub.
 
 ## GCP / GKE
 
@@ -147,6 +160,12 @@ Defina estes `Repository secrets`:
 2. Configure Workload Identity Federation ligando o repo GitHub ao provider do GCP.
 3. Instale no cluster o suporte ao `ManagedCertificate` e ao Ingress GCE, se ainda nao estiver ativo.
 4. Depois do primeiro deploy, obtenha o IP do Ingress e aponte o DNS `api.cassellas.com.br` para ele.
+
+## AWS HML
+
+1. Garanta acesso do runner self-hosted ao cluster Kubernetes de homologacao na AWS.
+2. Configure o DNS `hml-api.cassellas.com.br` para o ingress/controller desse cluster.
+3. Se necessario, configure `AWS_HML_KUBE_CONTEXT` para selecionar o contexto correto no runner.
 
 Comandos uteis:
 
