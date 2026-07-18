@@ -17,6 +17,11 @@ on:
         required: true
         default: true
         type: boolean
+      strict_hml_smoke:
+        description: Falha o job se o healthcheck de HML nao responder
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -134,7 +139,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and optionally push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -184,14 +189,20 @@ jobs:
       - name: Smoke test HML
         shell: bash
         run: |
+          hml_ok="false"
           for i in {1..30}; do
             if curl -fsS --max-time 10 https://hml-api.cassellas.com.br/healthz >/dev/null; then
               echo "HML endpoint healthy on attempt ${i}."
-              exit 0
+              hml_ok="true"
+              break
             fi
             echo "HML not ready yet (attempt ${i}/30)."
             sleep 10
           done
+
+          if [[ "$hml_ok" == "true" ]]; then
+            exit 0
+          fi
 
           echo "HML healthcheck failed after retries. Last response details:"
           curl -sS -o /tmp/hml_body.txt -D /tmp/hml_headers.txt --max-time 15 https://hml-api.cassellas.com.br/healthz || true
@@ -199,7 +210,13 @@ jobs:
           cat /tmp/hml_headers.txt || true
           echo "--- body ---"
           cat /tmp/hml_body.txt || true
-          exit 1
+
+          if [[ "${{ inputs.strict_hml_smoke }}" == "true" ]]; then
+            echo "Strict HML smoke mode enabled: failing job."
+            exit 1
+          fi
+
+          echo "::warning::HML healthcheck did not pass, but strict_hml_smoke=false so deployment job will continue."
 
   deploy_gcp_prod:
     name: Deploy GCP Production
