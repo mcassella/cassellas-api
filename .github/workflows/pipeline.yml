@@ -66,9 +66,14 @@ jobs:
       - name: Static security scan
         run: bandit -r main.py
 
-      - name: Dependency vulnerability scan (non-blocking)
-        continue-on-error: true
-        run: pip-audit -r requirements.txt
+      - name: Dependency vulnerability scan (warn-only)
+        shell: bash
+        run: |
+          if pip-audit -r requirements.txt; then
+            echo "No known dependency vulnerabilities found."
+          else
+            echo "::warning::pip-audit found vulnerabilities. Security check is warn-only and did not block the pipeline."
+          fi
 
   build:
     name: Build
