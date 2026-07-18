@@ -5,8 +5,14 @@ metadata:
   namespace: cassellas-api
   annotations:
     kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - hml-api.cassellas.com.br
+      secretName: cassellas-hml-tls
   rules:
     - host: hml-api.cassellas.com.br
       http:
