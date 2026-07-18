@@ -184,13 +184,21 @@ jobs:
       - name: Smoke test HML
         shell: bash
         run: |
-          for i in {1..10}; do
-            if curl -fsS https://hml-api.cassellas.com.br/now >/dev/null; then
+          for i in {1..30}; do
+            if curl -fsS --max-time 10 https://hml-api.cassellas.com.br/healthz >/dev/null; then
+              echo "HML endpoint healthy on attempt ${i}."
               exit 0
             fi
+            echo "HML not ready yet (attempt ${i}/30)."
             sleep 10
           done
-          echo "HML healthcheck failed"
+
+          echo "HML healthcheck failed after retries. Last response details:"
+          curl -sS -o /tmp/hml_body.txt -D /tmp/hml_headers.txt --max-time 15 https://hml-api.cassellas.com.br/healthz || true
+          echo "--- headers ---"
+          cat /tmp/hml_headers.txt || true
+          echo "--- body ---"
+          cat /tmp/hml_body.txt || true
           exit 1
 
   deploy_gcp_prod:
